@@ -1,0 +1,19 @@
+{
+  "name": "miya-boutique",
+  "version": "1.1.0",
+  "private": true,
+  "description": "MIYA Boutique — эмэгтэй хувцасны онлайн дэлгүүр",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.2.17"
+  }
+}
