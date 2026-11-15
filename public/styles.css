@@ -367,3 +367,95 @@ textarea.dinput{height:auto;border-radius:16px;padding:12px 20px}
 .job .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .job .btn{height:52px;justify-content:center}
 .job .acts .full{grid-column:1/-1}
+
+/* ================= Хөдөлгөөн (Motion) ================= */
+:root{--ease:cubic-bezier(.22,.61,.36,1);--spring:cubic-bezier(.34,1.56,.64,1)}
+
+/* Товч, чип: зөөлөн шилжилт + дарахад үл ялиг шахагдана */
+.pill,.round,.btn,.size,.seg button,.qty button,.cbtn,.dbtn,.fchip,.side,.cartpill,.tr{transition:background-color .25s var(--ease),color .25s var(--ease),box-shadow .25s var(--ease),transform .2s var(--ease),opacity .25s var(--ease)}
+.pill:active,.round:active,.btn:not(:disabled):active,.size:not(:disabled):active,.qty button:active,.cbtn:active,.dbtn:active,.fchip:active{transform:scale(.96)}
+@media(hover:hover){
+  .pill:not(.ink):not(.sale):hover{background:#F7F8F9}
+  .pill.ghost:hover{background:rgba(255,255,255,.7)}
+  .btn:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(21,23,26,.18)}
+  .btn.line:not(:disabled):hover{box-shadow:inset 0 0 0 1px var(--ink),0 10px 24px rgba(21,23,26,.1)}
+  .size:not(:disabled):not([aria-pressed=true]):hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
+  .cbtn.chrome:hover{filter:brightness(1.05)}
+  .dark .tr:not(.th):hover{background:#262A2F}
+  .cartpill:hover{transform:translateX(-50%) translateY(-2px)}
+}
+
+/* Барааны карт: зураг аажуухан томорно, карт өргөгдөнө */
+.card{transition:transform .45s var(--ease),box-shadow .45s var(--ease)}
+.card .ph>img,.citem .ph>img{transition:transform .9s var(--ease),opacity .5s var(--ease)}
+@media(hover:hover){
+  .card:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(21,23,26,.10)}
+  .card:hover .ph>img{transform:scale(1.045)}
+  .card .ph::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(21,23,26,.06));opacity:0;transition:opacity .45s var(--ease)}
+  .card:hover .ph::after{opacity:1}
+}
+/* Зураг ачаалагдахад бүдэг-тодруулж гаргана */
+.ph>img:not(.ok){opacity:0}
+
+/* Мөнгөлөг диск: хөвж, гэрэл гулсана */
+.disc{background-size:220% 220%;animation:float 7s ease-in-out infinite,shine 9s ease-in-out infinite}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -8px}}
+@keyframes shine{0%,100%{background-position:0% 0%}50%{background-position:100% 100%}}
+.chrome{background-size:220% 220%;transition:background-position .8s var(--ease)}
+.chrome:hover{background-position:100% 100%}
+
+/* Хуудас шилжих үед гарах */
+.enter .hero-txt>*,.enter .hero-art,.enter .chips,.enter .pd-panel>*,.enter .pd-gal,.enter .sub-h,.enter .free,.enter .form,.enter .ok-top>*,.enter .steps,.enter .rows,.enter .ok-note,.enter .empty{animation:rise .7s var(--ease) both}
+.enter .hero-txt>:nth-child(2){animation-delay:.08s}.enter .hero-txt>:nth-child(3){animation-delay:.16s}
+.enter .hero-art{animation:pop .9s var(--ease) .1s both}
+.enter .chips{animation-delay:.22s}
+.enter .pd-panel>:nth-child(2){animation-delay:.06s}.enter .pd-panel>:nth-child(3){animation-delay:.12s}.enter .pd-panel>:nth-child(4){animation-delay:.18s}.enter .pd-panel>:nth-child(5){animation-delay:.24s}
+.enter .ok-top>:nth-child(2){animation-delay:.1s}.enter .ok-top>:nth-child(3){animation-delay:.18s}
+.enter .steps{animation-delay:.24s}.enter .rows{animation-delay:.3s}.enter .ok-note{animation-delay:.34s}
+.enter .ok-top .disc{animation:pop .9s var(--spring) both,float 7s ease-in-out .9s infinite,shine 9s ease-in-out infinite}
+.enter .free{animation-delay:.06s}.enter .form{animation-delay:.14s}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+/* Гүйлгэхэд ээлжлэн гарч ирэх */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:var(--d,0s)}
+.rv.in{opacity:1;transform:none}
+.card.rv.in{transition:opacity .7s var(--ease) var(--d,0s),transform .45s var(--ease),box-shadow .45s var(--ease)}
+
+/* Цэс: хажуугаас гулсаж гарна */
+.sheet{animation:fade .3s var(--ease) both}
+.sheet-in{animation:slideIn .45s var(--ease) both}
+.sheet.out{animation:fade .25s var(--ease) reverse both}
+.sheet.out .sheet-in{animation:slideIn .3s var(--ease) reverse both}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
+.search{animation:rise .35s var(--ease) both}
+
+/* Сагсны тоо өөрчлөгдөхөд «үсэрнэ» */
+.bump{animation:bump .5s var(--spring)}
+.cartpill.bump{animation:bumpPill .5s var(--spring)}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:scale(1)}}
+@keyframes bumpPill{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.06)}100%{transform:translateX(-50%) scale(1)}}
+.cartpill{animation:pillIn .6s var(--spring) both}
+@keyframes pillIn{from{opacity:0;transform:translate(-50%,30px)}to{opacity:1;transform:translateX(-50%)}}
+
+/* Toast: доороос зөөлөн */
+#toast{transition:opacity .35s var(--ease),transform .45s var(--spring)}
+
+/* Админы дэлгэрэнгүй самбар */
+.detail:not(.none)>*{animation:rise .45s var(--ease) both}
+@media(max-width:1100px){.detail:not(.none){animation:slideIn .4s var(--ease) both}.detail:not(.none)>*{animation:none}}
+.login .disc{animation:pop .9s var(--spring) both,float 7s ease-in-out .9s infinite,shine 9s ease-in-out infinite}
+.login form{animation:rise .7s var(--ease) .15s both}
+
+/* Хуудас солигдоход зөөлөн уусах (View Transitions) */
+::view-transition-old(root){animation:.25s var(--ease) both vtOut}
+::view-transition-new(root){animation:.35s var(--ease) both vtIn}
+@keyframes vtOut{to{opacity:0}}
+@keyframes vtIn{from{opacity:0}}
+
+/* Хөдөлгөөн багасгах тохиргоотой хэрэглэгчид бүгдийг унтраана */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after,::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .rv{opacity:1;transform:none}
+}

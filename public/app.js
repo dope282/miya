@@ -248,7 +248,7 @@ function viewOrder(o) {
 }
 
 // ---------- Чиглүүлэлт ----------
-let route = { name: 'home', arg: 'all' }, orderData = null;
+let route = { name: 'home', arg: 'all' }, orderData = null, booted = false;
 function parse() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
   if (parts[0] === 'p' && byId(parts[1])) return { name: 'product', arg: Number(parts[1]) };
@@ -258,7 +258,36 @@ function parse() {
   return { name: 'home', arg: cat === 'sale' || S.products.some((p) => p.category === cat) ? cat : 'all' };
 }
 
-function render() {
+// ---------- Хөдөлгөөн ----------
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+let lastCount = null;
+const io = 'IntersectionObserver' in window ? new IntersectionObserver((es) => {
+  for (const e of es) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+}, { rootMargin: '0px 0px -8% 0px' }) : null;
+function reveal() { // гүйлгэхэд ээлжлэн гарч ирнэ (зөвхөн хуудас солигдоход)
+  if (!io || calm.matches) return;
+  const groups = new Map();
+  for (const el of app.querySelectorAll('main .card, main .sec-h, main .sale-intro, main .citem, main .sum, footer.foot > span')) {
+    const g = el.parentElement; const i = groups.get(g) || 0; groups.set(g, i + 1);
+    el.classList.add('rv'); el.style.setProperty('--d', `${Math.min(i % 4, 3) * 0.07}s`); io.observe(el);
+  }
+}
+function markImages() { for (const im of app.querySelectorAll('.ph > img')) if (im.complete && im.naturalWidth) im.classList.add('ok'); }
+document.addEventListener('load', (e) => { if (e.target.tagName === 'IMG') e.target.classList.add('ok'); }, true);
+document.addEventListener('error', (e) => { if (e.target.tagName === 'IMG') e.target.classList.add('ok'); }, true);
+function bumpCart() {
+  const n = totals().count;
+  if (lastCount !== null && n > lastCount) for (const el of app.querySelectorAll('.cartpill, .tocart, .hdr-r .pill.ink')) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  lastCount = n;
+}
+function closeMenu() {
+  const sh = app.querySelector('.sheet');
+  if (!sh || calm.matches) { S.menuOpen = false; render(); return; }
+  sh.classList.add('out');
+  setTimeout(() => { S.menuOpen = false; render(); }, 260);
+}
+
+function render(anim = false) {
   let body;
   if (route.name === 'product') body = viewProduct(byId(route.arg));
   else if (route.name === 'cart') body = viewCart();
@@ -266,7 +295,15 @@ function render() {
   else body = viewHome(route.arg);
   const home = route.name === 'home';
   document.body.className = home ? '' : 'sub';
-  app.innerHTML = header() + `<main>${body}</main>` + (home ? footer() + cartPill() : '') + menu();
+  app.innerHTML = header() + `<main${anim && !calm.matches ? ' class="enter"' : ''}>${body}</main>` + (home ? footer() + cartPill() : '') + menu();
+  markImages(); bumpCart();
+  if (anim) reveal();
+}
+
+// Хуудас солихдоо View Transitions-оор зөөлөн уусгана (дэмждэг хөтөч дээр)
+function swap(fn) {
+  if (document.startViewTransition && !calm.matches && !document.hidden) document.startViewTransition(fn);
+  else fn();
 }
 
 async function go() {
@@ -274,17 +311,22 @@ async function go() {
   route = parse(); S.menuOpen = false;
   if (route.name !== 'product' || prev.arg !== route.arg) S.size = null;
   if (route.name === 'order') {
-    orderData = null; render();
+    orderData = null; swap(() => render());
     const saved = S.orders.find((o) => o.id === route.arg);
-    try { if (!saved) throw new Error('Захиалга олдсонгүй'); orderData = await api(`/api/orders/${encodeURIComponent(saved.id)}?t=${saved.t}`); render(); }
+    try { if (!saved) throw new Error('Захиалга олдсонгүй'); orderData = await api(`/api/orders/${encodeURIComponent(saved.id)}?t=${saved.t}`); render(true); }
     catch (e) { app.querySelector('main').innerHTML = `<p class="empty">${esc(e.message)}</p><div class="submit" style="max-width:400px;margin:0 auto"><a class="btn center" href="#/">Дэлгүүр рүү буцах</a></div>`; }
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'instant' });
     return;
   }
-  render();
-  // ангилал солиход жагсаалт дээрээ үлдэнэ, бусад үед дээш гүйлгэнэ
-  if (route.name === 'home' && prev.name === 'home' && route.arg !== 'all') document.getElementById('chips')?.scrollIntoView({ block: 'start' });
-  else window.scrollTo(0, 0);
+  const sameList = booted && route.name === 'home' && prev.name === 'home';
+  booted = true;
+  swap(() => {
+    render(!sameList); // ангилал солиход зөвхөн жагсаалт гарч ирнэ
+    if (sameList) reveal();
+    // ангилал солиход жагсаалт дээрээ үлдэнэ, бусад үед дээш гүйлгэнэ
+    if (sameList && route.arg !== 'all') document.getElementById('chips')?.scrollIntoView({ block: 'start' });
+    else window.scrollTo({ top: 0, behavior: 'instant' });
+  });
 }
 
 // ---------- Үйлдлүүд ----------
@@ -298,7 +340,7 @@ app.addEventListener('click', (e) => {
       if (route.name !== 'home') { location.hash = '#/c/all'; } else render();
       document.getElementById('q')?.focus(); break;
     case 'menu': S.menuOpen = true; render(); break;
-    case 'menu-close': if (e.target === el) { S.menuOpen = false; render(); } break;
+    case 'menu-close': if (e.target === el) closeMenu(); break;
     case 'contact':
       if (route.name !== 'home') location.hash = '#/';
       setTimeout(() => document.getElementById('contact')?.scrollIntoView(), 50); break;
@@ -327,7 +369,7 @@ app.addEventListener('click', (e) => {
 });
 app.addEventListener('input', (e) => {
   const t = e.target;
-  if (t.id === 'q') { S.q = t.value; document.getElementById('list').innerHTML = listHtml(route.arg); return; }
+  if (t.id === 'q') { S.q = t.value; document.getElementById('list').innerHTML = listHtml(route.arg); markImages(); return; }
   if (!t.dataset.f) return;
   S.form[t.dataset.f] = t.value;
   if (t.dataset.f === 'district') { S.form.khoroo = ''; document.getElementById('khoroo').innerHTML = khorooOptions(); }
