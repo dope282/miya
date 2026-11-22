@@ -163,6 +163,9 @@ function khorooOptions() {
   return `<option value="">Сонгох</option>${Array.from({ length: n }, (_, i) => `<option value="${i + 1}" ${Number(S.form.khoroo) === i + 1 ? 'selected' : ''}>${i + 1}-р хороо</option>`).join('')}`;
 }
 
+const PAYS = () => [...(S.cfg.qpay ? [['qpay', 'QPay']] : []), ['bank', 'Дансаар'], ['cod', 'Хүргэлтээр']];
+const PAYL = { qpay: 'QPay', bank: 'Дансаар', cod: 'Хүргэлтээр' };
+
 function viewCart() {
   const t = totals(), d = S.cfg.delivery, f = S.form;
   if (!t.count) return `<div class="sub-h wrap"><a class="round" href="#/" aria-label="Буцах">←</a><h1>Сагс</h1></div>
@@ -188,8 +191,8 @@ function viewCart() {
         <label class="field"><span>Хороо</span><select data-f="khoroo" id="khoroo">${khorooOptions()}</select></label></div>
       <label class="field"><span>Дэлгэрэнгүй хаяг</span><textarea data-f="address" maxlength="200" placeholder="Байр, орц, давхар, тоот">${esc(f.address)}</textarea></label>
       <h2>Төлбөр</h2>
-      <div class="seg"><button type="button" data-act="pay" data-v="bank" aria-pressed="${f.pay === 'bank'}">Дансаар</button><button type="button" data-act="pay" data-v="cod" aria-pressed="${f.pay === 'cod'}">Хүргэлтээр</button></div>
-      <span class="hint">${f.pay === 'bank' ? 'Захиалсны дараа дансны мэдээлэл гарна.' : 'Бараагаа хүлээн авахдаа хүргэгчид төлнө.'}</span>
+      <div class="seg" style="grid-template-columns:repeat(${PAYS().length},1fr)">${PAYS().map(([k, label]) => `<button type="button" data-act="pay" data-v="${k}" aria-pressed="${f.pay === k}">${label}</button>`).join('')}</div>
+      <span class="hint">${{ qpay: 'Захиалсны дараа QPay QR болон банкны апп гарна. Төлбөр ормогц автоматаар баталгаажна.', bank: 'Захиалсны дараа дансны мэдээлэл гарна.', cod: 'Бараагаа хүлээн авахдаа хүргэгчид төлнө.' }[f.pay]}</span>
       <div class="submit"><button class="btn" ${S.busy ? 'disabled' : ''}><span>${S.busy ? 'Илгээж байна…' : 'Захиалах'}</span><span>${fmt(t.total)}</span></button></div>
     </form></div>`;
 }
@@ -222,9 +225,11 @@ function viewOrder(o) {
   const at = { new: 1, confirmed: 2, shipping: 2, delivered: 3 }[o.status] ?? 0;
   const step = (i, label) => `<div class="step ${at > i ? 'done' : at === i ? 'now' : ''}"><i>${at > i ? '✓' : i + 1}</i><span>${label}</span></div>`;
   const needPay = o.pay === 'bank' && !o.paid && o.status === 'new';
+  const needQ = o.pay === 'qpay' && !o.paid && o.status === 'new';
   const copyRow = (label, val, ink) => `<div class="copy"><div><small>${label}</small><b>${esc(val)}</b></div><button class="pill ${ink ? 'ink' : 'fog'}" data-act="copy" data-v="${esc(val)}">Хуулах</button></div>`;
   let note;
   if (o.status === 'cancelled') note = `Энэ захиалга цуцлагдсан. Асуух зүйл байвал ${esc(s.phone)} руу залгаарай.`;
+  else if (needQ) note = 'Банкны аппаараа QR кодыг уншуулах, эсвэл утсан дээрээ банкаа сонгоно уу. Төлбөр ормогц захиалга автоматаар баталгаажна.';
   else if (needPay) note = `Гүйлгээний утгад захиалгын дугаараа бичээрэй. Төлбөр орсны дараа баталгаажуулж, ${esc(s.phone)}-аас залгана.`;
   else if (o.status === 'new') note = `Бид удахгүй ${esc(s.phone)}-аас залгаж захиалгыг тань баталгаажуулна. Төлбөрөө бараагаа хүлээн авахдаа хүргэгчид төлнө.`;
   else if (o.status === 'confirmed') note = `Захиалга баталгаажлаа. ${esc(S.cfg.delivery.eta)}т хүргэнэ.`;
@@ -234,17 +239,50 @@ function viewOrder(o) {
     <div class="ok-top"><div class="disc"><small>Захиалгын дугаар</small><b>${esc(num)}</b><em>MY-${esc(dm)}</em></div>
       <h1>${o.status === 'cancelled' ? 'Захиалга цуцлагдсан' : `Баярлалаа, ${esc(o.name)}`}</h1>
       ${o.discount && o.status !== 'cancelled' ? `<span class="save">Та ${fmt(o.discount)} хэмнэлээ</span>` : ''}</div>
-    ${o.status === 'cancelled' ? '' : `<div class="steps">${step(0, 'Захиалсан')}${step(1, o.pay === 'bank' ? (o.paid ? 'Төлбөр төлөгдсөн' : 'Төлбөр шилжүүлэх') : 'Баталгаажуулах')}${step(2, o.status === 'delivered' ? 'Хүргэгдсэн' : `Хүргэлт ${esc(S.cfg.delivery.eta)}`)}</div>`}
+    ${o.status === 'cancelled' ? '' : `<div class="steps">${step(0, 'Захиалсан')}${step(1, o.pay === 'cod' ? 'Баталгаажуулах' : o.paid ? 'Төлбөр төлөгдсөн' : o.pay === 'qpay' ? 'QPay-ээр төлөх' : 'Төлбөр шилжүүлэх')}${step(2, o.status === 'delivered' ? 'Хүргэгдсэн' : `Хүргэлт ${esc(S.cfg.delivery.eta)}`)}</div>`}
     ${needPay ? `<div class="rows"><div><span>Төлөх дүн</span><span class="price" style="font-size:15px">${fmt(o.total)}</span></div>
       <div><span>Банк</span><span>${esc(bank.name)}</span></div>${copyRow('Данс', bank.account)}
       <div><span>Хүлээн авагч</span><span>${esc(bank.holder)}</span></div>${copyRow('Гүйлгээний утга', o.id, true)}</div>` : ''}
+    ${needQ ? qpayBox(o) : ''}
     <p class="ok-note">${note}</p>
     <div class="rows">${o.items.map((i) => `<div><span>${esc(i.name)} · ${esc(i.size)} × ${i.qty}</span><span>${fmt(i.price * i.qty)}</span></div>`).join('')}
       <div><span>Хүргэлт</span><span>${o.shipping ? fmt(o.shipping) : 'Үнэгүй'}</span></div>
-      <div><span>Нийт · ${o.pay === 'bank' ? 'Дансаар' : 'Хүргэлтээр'}</span><span class="price">${fmt(o.total)}</span></div>
+      <div><span>Нийт · ${PAYL[o.pay]}${o.paid && o.pay !== 'cod' ? ' · төлөгдсөн' : ''}</span><span class="price">${fmt(o.total)}</span></div>
       <div><span>Төлөв</span><span>${ST[o.status]}</span></div>
       <div><span>Хаяг</span><span style="text-align:right">${esc(o.district)}, ${o.khoroo}-р хороо, ${esc(o.address)}</span></div></div>
     <div class="submit"><a class="btn line center" href="#/">Дэлгүүр рүү буцах</a></div></div>`;
+}
+
+function qpayBox(o) {
+  const q = o.qpay;
+  if (!q) return `<div class="qpay"><p>QPay нэхэмжлэх үүсээгүй байна.</p><button class="btn center" data-act="qretry">QPay нэхэмжлэх үүсгэх</button></div>`;
+  return `<div class="qpay">
+    <div class="qpay-h"><b>QPay</b><span class="price">${fmt(o.total)}</span></div>
+    ${q.qr_image ? `<img class="qr" src="data:image/png;base64,${esc(q.qr_image)}" alt="QPay QR код" width="240" height="240">` : ''}
+    ${q.urls?.length ? `<div class="banks">${q.urls.map((u) => `<a class="pill" href="${esc(u.link)}" rel="noopener">${esc(u.name)}</a>`).join('')}</div>` : ''}
+    <div class="qpay-f"><span class="hint" id="qstate">Төлбөр хүлээж байна…</span><button class="pill fog" data-act="qcheck">Төлбөр шалгах</button></div>
+  </div>`;
+}
+
+// Захиалгын хуудас нээлттэй байх хооронд QPay төлбөрийг 5 секунд тутам шалгана (10 минут хүртэл)
+let qTimer = null;
+function stopPoll() { clearInterval(qTimer); qTimer = null; }
+async function qpayRefresh(manual) {
+  const saved = S.orders.find((x) => x.id === orderData?.id);
+  if (!saved || route.name !== 'order') return stopPoll();
+  try {
+    const o = await api(`/api/orders/${encodeURIComponent(saved.id)}/qpay?t=${saved.t}`, {});
+    const was = orderData; orderData = o;
+    if (o.paid && !was.paid) { stopPoll(); render(); toast('Төлбөр амжилттай төлөгдлөө'); }
+    else if (!was.qpay && o.qpay) render();
+    else if (manual) toast(o.paid ? 'Төлбөр төлөгдсөн байна' : 'Төлбөр хараахан ороогүй байна');
+  } catch (e) { if (manual) toast(e.message); }
+}
+function startPoll() {
+  stopPoll();
+  if (!(orderData?.pay === 'qpay' && !orderData.paid && orderData.status === 'new')) return;
+  const until = Date.now() + 10 * 60e3;
+  qTimer = setInterval(() => { if (Date.now() > until) return stopPoll(); if (!document.hidden) qpayRefresh(false); }, 5000);
 }
 
 // ---------- Чиглүүлэлт ----------
@@ -308,13 +346,13 @@ function swap(fn) {
 
 async function go() {
   const prev = route;
-  route = parse(); S.menuOpen = false;
+  route = parse(); S.menuOpen = false; stopPoll();
   if (route.name !== 'product' || prev.arg !== route.arg) S.size = null;
   if (route.name === 'order') {
-    orderData = null; swap(() => render());
+    orderData = null; render();
     const saved = S.orders.find((o) => o.id === route.arg);
-    try { if (!saved) throw new Error('Захиалга олдсонгүй'); orderData = await api(`/api/orders/${encodeURIComponent(saved.id)}?t=${saved.t}`); render(true); }
-    catch (e) { app.querySelector('main').innerHTML = `<p class="empty">${esc(e.message)}</p><div class="submit" style="max-width:400px;margin:0 auto"><a class="btn center" href="#/">Дэлгүүр рүү буцах</a></div>`; }
+    try { if (!saved) throw new Error('Захиалга олдсонгүй'); orderData = await api(`/api/orders/${encodeURIComponent(saved.id)}?t=${saved.t}`); render(true); startPoll(); }
+    catch (e) { console.error(e); if (!app.querySelector('main')) render(); app.querySelector('main').innerHTML = `<p class="empty">${esc(e.message)}</p><div class="submit" style="max-width:400px;margin:0 auto"><a class="btn center" href="#/">Дэлгүүр рүү буцах</a></div>`; }
     window.scrollTo({ top: 0, behavior: 'instant' });
     return;
   }
@@ -362,6 +400,8 @@ app.addEventListener('click', (e) => {
       else if (--it.qty <= 0) S.cart = S.cart.filter((x) => x !== it);
       saveCart(); render(); break;
     }
+    case 'qcheck': qpayRefresh(true); break;
+    case 'qretry': el.disabled = true; qpayRefresh(true).then(startPoll); break;
     case 'pay': S.form.pay = el.dataset.v; store.set('miya_form', S.form); render(); break;
     case 'copy':
       navigator.clipboard?.writeText(el.dataset.v.replace(/\s/g, '')).then(() => toast('Хуулагдлаа'), () => toast('Хуулж чадсангүй')); break;
@@ -381,6 +421,8 @@ window.addEventListener('hashchange', go);
 (async () => {
   try {
     [S.cfg, S.products] = await Promise.all([api('/api/config'), api('/api/products')]);
+    if (S.cfg.qpay && !store.get('miya_form', {}).pay) S.form.pay = 'qpay';
+    if (!S.cfg.qpay && S.form.pay === 'qpay') S.form.pay = 'bank';
     S.cart = S.cart.filter((it) => byId(it.id) && stock(byId(it.id), it.size) > 0); saveCart();
     go();
   } catch { app.innerHTML = '<p class="empty">Дэлгүүр ачаалж чадсангүй. Хуудсаа дахин ачаална уу.</p>'; }

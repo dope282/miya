@@ -459,3 +459,13 @@ textarea.dinput{height:auto;border-radius:16px;padding:12px 20px}
   *,*::before,*::after,::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important;transition:none!important;scroll-behavior:auto!important}
   .rv{opacity:1;transform:none}
 }
+
+/* ---------- QPay ---------- */
+.qpay{margin:22px 20px 0;background:var(--white);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.qpay-h{width:100%;display:flex;justify-content:space-between;align-items:baseline}
+.qpay-h b{font:600 16px var(--ub)}
+.qpay .qr{width:240px;height:240px;image-rendering:pixelated;border-radius:8px;box-shadow:0 0 0 1px var(--steel)}
+.qpay .banks{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.qpay .banks .pill{background:var(--fog);font-size:13px;white-space:normal;text-align:center;line-height:1.2;height:auto;min-height:44px;padding:8px 12px}
+.qpay-f{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px}
+@media(min-width:900px){.qpay .banks{display:none}}

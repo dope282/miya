@@ -5,7 +5,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const fmt = (n) => Number(n).toLocaleString('en-US') + '₮';
 const ST = { new: 'Шинэ', confirmed: 'Баталгаажсан', shipping: 'Хүргэлтэнд гарсан', delivered: 'Хүргэгдсэн', cancelled: 'Цуцлагдсан' };
 const PAL = { new: ['#15171A', '#E8EBEE'], confirmed: ['#15171A', '#B9D3E6'], shipping: ['#15171A', '#D9C9F0'], delivered: ['#A9B0B8', '#24282D'], cancelled: ['#7C838B', 'transparent'] };
-const PAY = { bank: 'Дансаар', cod: 'Хүргэлтээр' };
+const PAY = { bank: 'Дансаар', cod: 'Хүргэлтээр', qpay: 'QPay' };
 const S = { authed: false, tab: 'orders', orders: [], stats: {}, partner: {}, products: [], filter: 'all', q: '', sel: null, psel: null, busy: false };
 
 async function api(url, body, method) {
@@ -55,13 +55,15 @@ function orderDetail(o) {
   const acts = [];
   const primary = (a, label) => `<button class="cbtn chrome" data-act="do" data-v="${a}">${label}</button>`;
   const call = `<a class="dbtn" href="tel:${esc(o.phone)}">Залгах</a>`, cancel = '<button class="dbtn line" data-act="do" data-v="cancel">Цуцлах</button>';
-  if (o.status === 'new') acts.push(primary('confirm', o.pay === 'bank' ? 'Төлбөр баталгаажуулах' : 'Захиалга баталгаажуулах'), `<div class="two">${call}${cancel}</div>`);
+  if (o.status === 'new' && o.pay === 'qpay' && !o.paid) acts.push(primary('qcheck', 'QPay төлбөр шалгах'), `<div class="two">${call}${cancel}</div>`);
+  else if (o.status === 'new') acts.push(primary('confirm', o.pay === 'bank' ? 'Төлбөр баталгаажуулах' : 'Захиалга баталгаажуулах'), `<div class="two">${call}${cancel}</div>`);
   else if (o.status === 'confirmed') acts.push(primary('ship', 'Хүргэлтэнд өгөх'), `<div class="two">${call}${cancel}</div>`);
   else if (o.status === 'shipping') acts.push(primary('deliver', 'Хүргэгдсэн гэж тэмдэглэх'), `<div class="two"><button class="dbtn" data-act="do" data-v="unship">Буцааж авах</button>${cancel}</div>`);
   else acts.push(call);
   const cs = { picked: 'Хүргэгч барааг хүлээн авсан', failed: 'Хүргэж чадсангүй', delivered: 'Хүргэгч хүргэсэн гэж тэмдэглэсэн' }[o.courier_status];
   return `<div class="top"><span class="mono" style="font-weight:500">${esc(o.id)}</span><span>${badge(o.status)} <button class="round close" data-act="close" aria-label="Хаах">✕</button></span></div>
   <div class="who"><b>${esc(o.name)}</b><span>${esc(o.phone)} · ${when(o.created_at)}</span><span>${esc(o.district)}, ${o.khoroo}-р хороо, ${esc(o.address)}</span></div>
+  ${o.status === 'cancelled' && o.paid && o.pay === 'qpay' ? '<div class="dnote"><b>⚠ Цуцлагдсан захиалгад QPay төлбөр орсон</b><br><span class="muted">Үйлчлүүлэгчид мөнгийг нь буцааж олгоно уу.</span></div>' : ''}
   ${cs ? `<div class="dnote"><b>${cs}</b>${o.courier_note ? `<br><span class="muted">${esc(o.courier_note)}</span>` : ''}</div>` : ''}
   <div class="ditems">${o.items.map((i) => `<div class="ditem"><span class="ph">${i.image ? `<img src="${esc(i.image)}" alt="">` : ''}</span>
     <span>${esc(i.name)}<small>${esc([i.color, i.size].filter(Boolean).join(' · '))} × ${i.qty}${i.old ? ` · −${Math.round((1 - i.price / i.old) * 100)}%` : ''}</small></span><b>${fmt(i.price * i.qty)}</b></div>`).join('')}</div>
@@ -214,7 +216,7 @@ app.addEventListener('click', async (e) => {
       if (S.busy) return;
       if (v === 'cancel' && !confirm(`${S.sel} захиалгыг цуцлах уу? Барааны үлдэгдэл буцаж нэмэгдэнэ.`)) return;
       S.busy = true;
-      try { await api(`/api/admin/orders/${encodeURIComponent(S.sel)}`, { action: v }); await load(); render(); toast({ confirm: 'Баталгаажлаа', ship: 'Хүргэлтэнд өглөө', deliver: 'Хүргэгдсэн', cancel: 'Цуцлагдлаа', unship: 'Буцааж авлаа' }[v]); }
+      try { await api(`/api/admin/orders/${encodeURIComponent(S.sel)}`, { action: v }); await load(); render(); toast({ qcheck: 'Шалгалаа', confirm: 'Баталгаажлаа', ship: 'Хүргэлтэнд өглөө', deliver: 'Хүргэгдсэн', cancel: 'Цуцлагдлаа', unship: 'Буцааж авлаа' }[v]); }
       catch (err) { toast(err.message); }
       S.busy = false; break;
   }
