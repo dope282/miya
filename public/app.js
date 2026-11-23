@@ -93,7 +93,7 @@ function footer() {
   const s = S.cfg.shop, d = S.cfg.delivery;
   return `<footer class="foot wrap" id="contact">
     <span><b>Шоурум</b><br>${esc(s.hours)}</span>
-    <span><b>Хүргэлт</b><br>${esc(d.eta)} · ${fmt(d.fee)} · ${fmt(d.freeFrom)}-өөс дээш үнэгүй</span>
+    <span><b>Хүргэлт</b><br>${fmt(d.freeFrom)}-өөс дээш үнэгүй</span>
     <span><b>Холбоо барих</b>${socials()}</span></footer>`;
 }
 
