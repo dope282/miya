@@ -93,7 +93,7 @@ function footer() {
   const s = S.cfg.shop, d = S.cfg.delivery;
   return `<footer class="foot wrap" id="contact">
     <span><b>Шоурум</b><br>${esc(s.hours)}</span>
-    <span><b>Хүргэлт</b><br>${fmt(d.freeFrom)}-өөс дээш үнэгүй</span>
+    <span><b>Хүргэлт</b><br>${d.fee ? `${fmt(d.freeFrom)}-өөс дээш үнэгүй` : 'Үнэгүй'}</span>
     <span><b>Холбоо барих</b>${socials()}</span></footer>`;
 }
 
@@ -123,7 +123,7 @@ function viewHome(cat) {
     <div class="hero-art">${feat ? `<a class="ph hero-img" href="#/p/${feat.id}">${img(feat)}<span>${esc(feat.n)} — ${esc(feat.name.toLowerCase())}</span></a>` : ''}
       <div class="disc"><b>MIYA</b><i>Boutique</i></div></div>
     <div class="hero-txt"><h1>Сөүлийн шинэ улирал</h1>
-      <p>Солонгос брэндийн эмэгтэй хувцас. Улаанбаатар даяар ${esc(d.eta)}т<span class="d-only">, ${fmt(d.freeFrom)}-өөс дээш үнэгүй</span>.</p>
+      <p>Солонгос брэндийн эмэгтэй хувцас. Улаанбаатар даяар ${d.fee ? `${fmt(d.freeFrom)}-өөс дээш ` : ''}үнэгүй хүргэнэ.</p>
       <div class="hero-cta"><a class="btn" href="#/c/all" data-act="to-list">Цуглуулга үзэх</a>${hasSale() ? '<a class="btn sale" href="#/c/sale">Хямдрал</a>' : ''}</div></div>
   </section>
   <div class="chips wrap" id="chips">${chip('all', 'Бүгд')}${hasSale() ? `<a class="pill sale" href="#/c/sale">Хямдрал</a>` : ''}${cats.map((c) => chip(c, c)).join('')}</div>
@@ -155,7 +155,7 @@ function viewProduct(p) {
       <div class="cells">
         ${p.material ? `<div><span>Материал</span><span>${esc(p.material)}</span></div>` : ''}
         ${p.model ? `<div><span>Модель</span><span>${esc(p.model)}</span></div>` : ''}
-        <div><span>Хүргэлт</span><span>${esc(d.eta)}, ${p.price >= d.freeFrom ? 'үнэгүй' : fmt(d.fee)}</span></div>
+        <div><span>Хүргэлт</span><span>${!d.fee ? 'Үнэгүй' : p.price >= d.freeFrom ? 'Үнэгүй' : `${fmt(d.freeFrom)}-өөс дээш үнэгүй`}</span></div>
         <div><span>Буцаалт</span><span>${esc(S.cfg.shop.returns)}</span></div></div>
       <div class="buybar"><button class="round" data-act="wish" aria-pressed="${wished}" aria-label="Хадгалах">${wished ? '♥' : '♡'}</button>
         <button class="btn" data-act="add" ${soldOut ? 'disabled' : ''}><span>${soldOut ? 'Дууссан' : 'Сагсанд нэмэх'}</span><span>${fmt(p.price)}</span></button></div>
@@ -177,10 +177,10 @@ function viewCart() {
   const t = totals(), d = S.cfg.delivery, f = S.form;
   if (!t.count) return `<div class="sub-h wrap"><a class="round" href="#/" aria-label="Буцах">←</a><h1>Сагс</h1></div>
     <p class="empty">Таны сагс хоосон байна.</p><div class="submit" style="max-width:400px;margin:0 auto"><a class="btn center" href="#/">Дэлгүүр хэсэх</a></div>`;
-  const pct = Math.min(100, Math.round((t.goods / d.freeFrom) * 100));
+  const pct = d.fee ? Math.min(100, Math.round((t.goods / d.freeFrom) * 100)) : 100;
   return `<div class="cart wrap">
     <div class="sub-h"><a class="round m-only" href="#/" data-act="back" aria-label="Буцах">←</a><h1>Сагс</h1><span class="cnt">${t.count} бараа</span></div>
-    <div><div class="free"><div>${t.ship ? `<span>Үнэгүй хүргэлтэд ${fmt(d.freeFrom - t.goods)} дутуу</span><span>${pct}%</span>` : '<span>Үнэгүй хүргэлт идэвхжлээ</span><b>✓</b>'}</div><div class="bar"><i style="width:${pct}%"></i></div></div>
+    <div>${d.fee ? `<div class="free"><div>${t.ship ? `<span>Үнэгүй хүргэлтэд ${fmt(d.freeFrom - t.goods)} дутуу</span><span>${pct}%</span>` : '<span>Үнэгүй хүргэлт идэвхжлээ</span><b>✓</b>'}</div><div class="bar"><i style="width:${pct}%"></i></div></div>` : ''}
       <div class="lines">${t.lines.map(({ it, p }, i) => `<div class="citem">
         <a class="ph" href="#/p/${p.id}">${img(p)}</a>
         <div class="mid"><span>${esc(p.name)}</span><span class="mono">${esc([p.color, it.size].filter(Boolean).join(' · '))}</span>${p.sale ? `<span class="badge">${esc(p.sale)}</span>` : ''}</div>
@@ -239,14 +239,14 @@ function viewOrder(o) {
   else if (needQ) note = 'Банкны аппаараа QR кодыг уншуулах, эсвэл утсан дээрээ банкаа сонгоно уу. Төлбөр ормогц захиалга автоматаар баталгаажна.';
   else if (needPay) note = `Гүйлгээний утгад захиалгын дугаараа бичээрэй. Төлбөр орсны дараа баталгаажуулж, ${esc(s.phone)}-аас залгана.`;
   else if (o.status === 'new') note = `Бид удахгүй ${esc(s.phone)}-аас залгаж захиалгыг тань баталгаажуулна. Төлбөрөө бараагаа хүлээн авахдаа хүргэгчид төлнө.`;
-  else if (o.status === 'confirmed') note = `Захиалга баталгаажлаа. ${esc(S.cfg.delivery.eta)}т хүргэнэ.`;
+  else if (o.status === 'confirmed') note = 'Захиалга баталгаажлаа. Удахгүй хүргэлтэнд гаргана.';
   else if (o.status === 'shipping') note = 'Захиалга хүргэлтэнд гарлаа. Хүргэгч тантай утсаар холбогдоно.';
   else note = 'Захиалга хүргэгдсэн. Биднийг сонгосонд баярлалаа.';
   return `<div class="ok">
     <div class="ok-top"><div class="disc"><small>Захиалгын дугаар</small><b>${esc(num)}</b><em>MY-${esc(dm)}</em></div>
       <h1>${o.status === 'cancelled' ? 'Захиалга цуцлагдсан' : `Баярлалаа, ${esc(o.name)}`}</h1>
       ${o.discount && o.status !== 'cancelled' ? `<span class="save">Та ${fmt(o.discount)} хэмнэлээ</span>` : ''}</div>
-    ${o.status === 'cancelled' ? '' : `<div class="steps">${step(0, 'Захиалсан')}${step(1, o.pay === 'cod' ? 'Баталгаажуулах' : o.paid ? 'Төлбөр төлөгдсөн' : o.pay === 'qpay' ? 'QPay-ээр төлөх' : 'Төлбөр шилжүүлэх')}${step(2, o.status === 'delivered' ? 'Хүргэгдсэн' : `Хүргэлт ${esc(S.cfg.delivery.eta)}`)}</div>`}
+    ${o.status === 'cancelled' ? '' : `<div class="steps">${step(0, 'Захиалсан')}${step(1, o.pay === 'cod' ? 'Баталгаажуулах' : o.paid ? 'Төлбөр төлөгдсөн' : o.pay === 'qpay' ? 'QPay-ээр төлөх' : 'Төлбөр шилжүүлэх')}${step(2, o.status === 'delivered' ? 'Хүргэгдсэн' : 'Хүргэлт')}</div>`}
     ${needPay ? `<div class="rows"><div><span>Төлөх дүн</span><span class="price" style="font-size:15px">${fmt(o.total)}</span></div>
       <div><span>Банк</span><span>${esc(bank.name)}</span></div>${copyRow('Данс', bank.account)}
       <div><span>Хүлээн авагч</span><span>${esc(bank.holder)}</span></div>${copyRow('Гүйлгээний утга', o.id, true)}</div>` : ''}
