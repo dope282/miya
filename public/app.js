@@ -78,8 +78,15 @@ function menu() {
     ${hasSale() ? '<a class="pill sale" href="#/c/sale">Хямдрал</a>' : ''}
     ${cats.map((c) => `<a class="pill" href="#/c/${encodeURIComponent(c)}">${esc(c)}</a>`).join('')}
     ${S.orders.length ? `<h3>Миний захиалга</h3>${S.orders.slice(0, 5).map((o) => `<a class="pill mono" href="#/order/${esc(o.id)}">${esc(o.id)}</a>`).join('')}` : ''}
-    <h3>Холбоо барих</h3><p><a class="ul" href="tel:${esc(s.phone)}">${esc(s.phone)}</a> · ${esc(s.instagram)}<br>${esc(s.hours)}</p>
+    <h3>Холбоо барих</h3>${socials('col')}<p>${esc(s.hours)}</p>
   </div></div>`;
+}
+
+// Холбоо барих холбоосууд (утас, Instagram, Facebook)
+const safeUrl = (u) => (/^https:\/\//.test(u || '') ? u : '');
+function socials(cls = '') {
+  const s = S.cfg.shop, ig = safeUrl(s.instagramUrl), fb = safeUrl(s.facebookUrl);
+  return `<span class="socials ${cls}"><a class="pill" href="tel:${esc(s.phone)}">☎ ${esc(s.phone.replace(/^(\d{4})(\d{4})$/, '$1 $2'))}</a>${ig ? `<a class="pill" href="${esc(ig)}" target="_blank" rel="noopener">Instagram</a>` : ''}${fb ? `<a class="pill" href="${esc(fb)}" target="_blank" rel="noopener">Facebook</a>` : ''}</span>`;
 }
 
 function footer() {
@@ -87,7 +94,7 @@ function footer() {
   return `<footer class="foot wrap" id="contact">
     <span><b>Шоурум</b><br>${esc(s.hours)}</span>
     <span><b>Хүргэлт</b><br>${esc(d.eta)} · ${fmt(d.fee)} · ${fmt(d.freeFrom)}-өөс дээш үнэгүй</span>
-    <span><b>Холбоо</b><br><a href="tel:${esc(s.phone)}">${esc(s.phone)}</a> · ${esc(s.instagram)}</span></footer>`;
+    <span><b>Холбоо барих</b>${socials()}</span></footer>`;
 }
 
 const cartPill = () => { const t = totals(); return t.count ? `<a class="cartpill" href="#/cart">Сагс · ${fmt(t.goods)}<span class="chrome">${t.count}</span></a>` : ''; };

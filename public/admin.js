@@ -6,7 +6,7 @@ const fmt = (n) => Number(n).toLocaleString('en-US') + '₮';
 const ST = { new: 'Шинэ', confirmed: 'Баталгаажсан', shipping: 'Хүргэлтэнд гарсан', delivered: 'Хүргэгдсэн', cancelled: 'Цуцлагдсан' };
 const PAL = { new: ['#15171A', '#E8EBEE'], confirmed: ['#15171A', '#B9D3E6'], shipping: ['#15171A', '#D9C9F0'], delivered: ['#A9B0B8', '#24282D'], cancelled: ['#7C838B', 'transparent'] };
 const PAY = { bank: 'Дансаар', cod: 'Хүргэлтээр', qpay: 'QPay' };
-const S = { authed: false, tab: 'orders', orders: [], stats: {}, partner: {}, products: [], filter: 'all', q: '', sel: null, psel: null, busy: false };
+const S = { authed: false, tab: 'orders', orders: [], stats: {}, products: [], filter: 'all', q: '', sel: null, psel: null, busy: false };
 
 async function api(url, body, method) {
   const r = await fetch(url, body ? { method: method || 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined);
@@ -31,7 +31,7 @@ function when(iso) {
 
 async function load() {
   const [o, p, c] = await Promise.all([api('/api/admin/orders'), api('/api/admin/products'), api('/api/config')]);
-  Object.assign(S, { orders: o.orders, stats: o.stats, partner: o.partner, products: p, banner: c.sale });
+  Object.assign(S, { orders: o.orders, stats: o.stats, products: p, banner: c.sale });
 }
 
 // ---------- Захиалга ----------
@@ -48,7 +48,7 @@ function ordersView() {
     ${list.map((o) => `<button class="tr" data-act="open" data-v="${esc(o.id)}" aria-current="${S.sel === o.id}">
       <span class="id">${esc(o.id)}</span><span class="c-name">${esc(o.name)} <span class="sub2">${esc(o.phone)}</span></span>
       <span class="dim c-dist">${esc(o.district)}, ${o.khoroo}-р хороо</span><span class="tot c-tot">${fmt(o.total)}</span>
-      <span class="dim c-pay">${PAY[o.pay]} · ${when(o.created_at)}</span><span class="c-st">${badge(o.status)}${o.courier_status === 'failed' && o.status === 'shipping' ? ' ⚠' : ''}</span></button>`).join('') || '<p class="muted" style="padding:24px 18px">Захиалга алга.</p>'}</div>`;
+      <span class="dim c-pay">${PAY[o.pay]} · ${when(o.created_at)}</span><span class="c-st">${badge(o.status)}</span></button>`).join('') || '<p class="muted" style="padding:24px 18px">Захиалга алга.</p>'}</div>`;
 }
 
 function orderDetail(o) {
@@ -60,16 +60,15 @@ function orderDetail(o) {
   else if (o.status === 'confirmed') acts.push(primary('ship', 'Хүргэлтэнд өгөх'), `<div class="two">${call}${cancel}</div>`);
   else if (o.status === 'shipping') acts.push(primary('deliver', 'Хүргэгдсэн гэж тэмдэглэх'), `<div class="two"><button class="dbtn" data-act="do" data-v="unship">Буцааж авах</button>${cancel}</div>`);
   else acts.push(call);
-  const cs = { picked: 'Хүргэгч барааг хүлээн авсан', failed: 'Хүргэж чадсангүй', delivered: 'Хүргэгч хүргэсэн гэж тэмдэглэсэн' }[o.courier_status];
   return `<div class="top"><span class="mono" style="font-weight:500">${esc(o.id)}</span><span>${badge(o.status)} <button class="round close" data-act="close" aria-label="Хаах">✕</button></span></div>
   <div class="who"><b>${esc(o.name)}</b><span>${esc(o.phone)} · ${when(o.created_at)}</span><span>${esc(o.district)}, ${o.khoroo}-р хороо, ${esc(o.address)}</span></div>
   ${o.status === 'cancelled' && o.paid && o.pay === 'qpay' ? '<div class="dnote"><b>⚠ Цуцлагдсан захиалгад QPay төлбөр орсон</b><br><span class="muted">Үйлчлүүлэгчид мөнгийг нь буцааж олгоно уу.</span></div>' : ''}
-  ${cs ? `<div class="dnote"><b>${cs}</b>${o.courier_note ? `<br><span class="muted">${esc(o.courier_note)}</span>` : ''}</div>` : ''}
   <div class="ditems">${o.items.map((i) => `<div class="ditem"><span class="ph">${i.image ? `<img src="${esc(i.image)}" alt="">` : ''}</span>
     <span>${esc(i.name)}<small>${esc([i.color, i.size].filter(Boolean).join(' · '))} × ${i.qty}${i.old ? ` · −${Math.round((1 - i.price / i.old) * 100)}%` : ''}</small></span><b>${fmt(i.price * i.qty)}</b></div>`).join('')}</div>
   <div class="dsum">${o.discount ? `<div><span>Хямдрал</span><span>−${fmt(o.discount)}</span></div>` : ''}
     <div><span>Хүргэлт</span><span>${o.shipping ? fmt(o.shipping) : 'Үнэгүй'}</span></div>
     <div class="tot"><span>Нийт · ${PAY[o.pay]}${o.paid ? ' · төлөгдсөн' : ''}</span><span>${fmt(o.total)}</span></div></div>
+  ${o.status === 'confirmed' || o.status === 'shipping' ? `<button class="dbtn" data-act="copy" data-v="${esc(deliveryText(o))}">Хүргэлтийн мэдээлэл хуулах</button>` : ''}
   <div class="dact">${acts.join('')}</div>`;
 }
 
@@ -141,18 +140,24 @@ async function uploadImage(file, form) {
 }
 
 // ---------- Хүргэлт ----------
+// Хүргэлтийн мэдээлэл зөвхөн админд харагдана. Админ хүргэлтийн компанийн системд гараар оруулна.
+const deliveryText = (o) => [
+  `Захиалга: ${o.id}`, `Нэр: ${o.name}`, `Утас: ${o.phone}`,
+  `Хаяг: ${o.district}, ${o.khoroo}-р хороо, ${o.address}`,
+  `Бараа: ${o.items.map((i) => `${i.name} (${i.size}) ×${i.qty}`).join(', ')}`,
+  o.pay === 'cod' && !o.paid ? `Үйлчлүүлэгчээс авах: ${fmt(o.total)}` : 'Төлбөр: төлөгдсөн',
+].join('\n');
 function deliveryView() {
-  const link = `${location.origin}/courier#${S.partner.key}`, ship = S.orders.filter((o) => o.status === 'shipping');
+  const list = S.orders.filter((o) => o.status === 'confirmed' || o.status === 'shipping');
+  const ship = list.filter((o) => o.status === 'shipping').length;
   return `<div class="adm-h"><h1>Хүргэлт</h1></div>
-  <div class="box"><h2>Хамтрагч компани${S.partner.name ? ` · ${esc(S.partner.name)}` : ''}</h2>
-    <p class="muted">Доорх холбоосыг хүргэлтийн компанидаа өгнө. Тэд «Хүргэлтэнд гарсан» захиалгуудын хаяг, утас, авах дүнг харж, «Хүргэсэн» / «Хүргэж чадсангүй» гэж тэмдэглэнэ. Холбоос нь нууц түлхүүртэй тул зөвхөн хамтрагчдаа өгөөрэй.</p>
-    <div class="row"><code>${esc(link)}</code><button class="dbtn" data-act="copy" data-v="${esc(link)}">Хуулах</button></div>
-    <div class="row"><a class="dbtn" href="/api/admin/export.csv" download>Excel/CSV татах (${ship.length})</a><a class="dbtn line" href="${esc(link)}" target="_blank" rel="noopener">Хамтрагчийн самбар нээх</a></div>
-    <p class="muted" style="font-size:13px">${S.partner.webhook ? 'API холболт идэвхтэй: захиалга хүргэлтэнд өгөх бүрд компанийн систем рүү автоматаар илгээнэ.' : 'Компани API-тай бол config.js → delivery.partner.webhookUrl-д хаягийг нь бичээрэй.'}</p></div>
-  <div class="tbl">${ship.map((o) => `<button class="tr" data-act="open" data-v="${esc(o.id)}" aria-current="${S.sel === o.id}">
-      <span class="id">${esc(o.id)}</span><span class="c-name">${esc(o.name)} <span class="sub2">${esc(o.phone)}</span></span>
-      <span class="dim c-dist">${esc(o.district)}, ${o.khoroo}-р хороо</span><span class="tot c-tot">${fmt(o.total)}</span>
-      <span class="dim c-pay">${o.paid ? 'Төлөгдсөн' : 'Авах дүнтэй'}</span><span class="c-st">${{ picked: 'Хүлээн авсан', failed: '⚠ Чадсангүй' }[o.courier_status] || 'Хүлээгдэж буй'}</span></button>`).join('') || '<p class="muted" style="padding:24px 18px">Хүргэлтэнд гарсан захиалга алга.</p>'}</div>`;
+  <div class="box"><h2>Хүргэлтэнд өгөх захиалгууд</h2>
+    <p class="muted">Хүргэлтийн мэдээлэл зөвхөн танд харагдана. Захиалга бүрийн «Хуулах» товчоор нэр, утас, хаяг, бараа, авах дүнг хуулж хүргэлтийн компанийн системд оруулаад, тухайн захиалгыг «Хүргэлтэнд өгөх» болгоно.</p>
+    <div class="row"><a class="dbtn" href="/api/admin/export.csv" download>Хүргэлтэнд гарсныг Excel/CSV-ээр татах (${ship})</a></div></div>
+  <div class="tbl">${list.map((o) => `<div class="tr" aria-current="${S.sel === o.id}">
+      <button class="id" data-act="open" data-v="${esc(o.id)}" style="text-align:left">${esc(o.id)}</button><span class="c-name">${esc(o.name)} <span class="sub2">${esc(o.phone)}</span></span>
+      <span class="dim c-dist">${esc(o.district)}, ${o.khoroo}-р хороо</span><span class="tot c-tot">${o.pay === 'cod' && !o.paid ? fmt(o.total) : 'Төлөгдсөн'}</span>
+      <span class="c-pay">${badge(o.status)}</span><span class="c-st"><button class="dbtn" data-act="copy" data-v="${esc(deliveryText(o))}">Хуулах</button></span></div>`).join('') || '<p class="muted" style="padding:24px 18px">Хүргэлтэнд өгөх захиалга алга.</p>'}</div>`;
 }
 
 // ---------- Баннер ----------

@@ -17,7 +17,7 @@ http.createServer((req, res) => {
   let p;
   try { p = decodeURIComponent(new URL(req.url, 'http://x').pathname); } catch { res.writeHead(400); return res.end(); }
   if (p.startsWith('/api/') || p.startsWith('/uploads/')) return handler(req, res);
-  const page = { '/': 'index.html', '/admin': 'admin.html', '/courier': 'courier.html' }[p];
+  const page = { '/': 'index.html', '/admin': 'admin.html' }[p];
   const file = path.normalize(path.join(PUBLIC, page || p.slice(1)));
   if ((req.method !== 'GET' && req.method !== 'HEAD') || !file.startsWith(PUBLIC + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -32,6 +32,5 @@ http.createServer((req, res) => {
   console.log(`MIYA Boutique ажиллаж байна:
   Дэлгүүр   http://localhost:${PORT}/
   Админ     http://localhost:${PORT}/admin
-  Хүргэлт   Админ → «Хүргэлт» цэсээс холбоосыг хуулна
 Админы нууц үг: ${process.env.ADMIN_PASSWORD ? 'ADMIN_PASSWORD орчны хувьсагч' : 'data/secrets.json'}`);
 });

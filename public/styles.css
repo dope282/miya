@@ -469,3 +469,9 @@ textarea.dinput{height:auto;border-radius:16px;padding:12px 20px}
 .qpay .banks .pill{background:var(--fog);font-size:13px;white-space:normal;text-align:center;line-height:1.2;height:auto;min-height:44px;padding:8px 12px}
 .qpay-f{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px}
 @media(min-width:900px){.qpay .banks{display:none}}
+
+/* ---------- Холбоо барих ---------- */
+.socials{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.socials .pill{height:40px;font-size:13px;padding:0 16px}
+.socials.col{flex-direction:column;margin-top:0}
+.socials.col .pill{width:100%;justify-content:flex-start;height:44px}

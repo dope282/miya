@@ -4,6 +4,8 @@ module.exports = {
     name: 'MIYA Boutique',
     phone: '99114956',
     instagram: '@miya_btque',
+    instagramUrl: 'https://www.instagram.com/miya_btque/',
+    facebookUrl: 'https://www.facebook.com/profile.php?id=61584715732796',
     hours: 'Даваа–Бямба 10:00–21:00 · Ням амарна',
     returns: '3 хоногт солино',
   },
@@ -11,13 +13,7 @@ module.exports = {
     fee: 5000,          // хүргэлтийн төлбөр (₮)
     freeFrom: 300000,   // энэ дүнгээс дээш үнэгүй
     eta: '24–48 цаг',
-    // Хамтрагч хүргэлтийн компани
-    partner: {
-      name: '',         // жишээ: 'UB Express'
-      phone: '',
-      // Хэрэв компани API-тай бол захиалгыг хүргэлтэнд өгөх үед энэ хаяг руу JSON илгээнэ (заавал биш)
-      webhookUrl: '',
-    },
+    // Хүргэлтийн мэдээллийг зөвхөн админ харж, хүргэлтийн компанийн системд гараар оруулна
   },
   sale: { active: true, text: 'Өвлийн хямдрал −30% хүртэл', until: '11/30' },
   bank: { name: 'Хаан банк', account: '5012 3456 78', holder: 'Мияа Бутик ХХК' },
